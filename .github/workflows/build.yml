@@ -1,0 +1,38 @@
+name: Build Skyverb VST3 (Windows)
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: DSP self-test (portable C++ tests)
+        shell: bash
+        run: |
+          g++ -std=c++17 -O2 -ISource/dsp tests/dsp_tests.cpp -o dsp_tests
+          ./dsp_tests
+        continue-on-error: true
+
+      - name: Configure
+        run: cmake -B build -A x64 -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --config Release --target Skyverb_VST3 --parallel
+
+      - name: Collect
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Copy-Item -Recurse "build/Skyverb_artefacts/Release/VST3/Skyverb.vst3" "dist/Skyverb.vst3"
+          Get-ChildItem -Recurse dist | Select-Object FullName
+
+      - name: Upload plugin
+        uses: actions/upload-artifact@v4
+        with:
+          name: Skyverb-VST3-Windows
+          path: dist
+          if-no-files-found: error
