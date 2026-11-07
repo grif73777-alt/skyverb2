@@ -13,6 +13,7 @@ jobs:
       - name: DSP self-test (portable C++ tests)
         shell: bash
         run: |
+          # quick sanity check of the reverb + lossy algorithms before building the plugin
           g++ -std=c++17 -O2 -ISource/dsp tests/dsp_tests.cpp -o dsp_tests
           ./dsp_tests
         continue-on-error: true
@@ -36,3 +37,18 @@ jobs:
           name: skyverb-VST3-Windows
           path: dist
           if-no-files-found: error
+
+      - name: Build installer (Inno Setup)
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          choco install innosetup -y --no-progress
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\skyverb.iss
+          Get-ChildItem setup-out
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: skyverb-setup
+          path: setup-out
+          if-no-files-found: warn
