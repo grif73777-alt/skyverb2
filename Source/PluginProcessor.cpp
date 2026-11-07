@@ -70,9 +70,11 @@ SkyverbAudioProcessor::SkyverbAudioProcessor()
     : AudioProcessor (BusesProperties()
                           .withInput ("Input", juce::AudioChannelSet::stereo(), true)
                           .withOutput ("Output", juce::AudioChannelSet::stereo(), true)),
-      apvts (*this, nullptr, "SKYVERB_STATE", createLayout())
+      apvts (*this, nullptr, "SKYVERB_STATE", createLayout()),
+      presets (apvts)
 {
     setLatencySamples (sky::LossyCodec::kLatency);
+    presets.restore ("Init", true); // default parameter values are the "Init" preset
 }
 
 bool SkyverbAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
@@ -191,6 +193,10 @@ juce::AudioProcessorEditor* SkyverbAudioProcessor::createEditor()
 
 void SkyverbAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
+    apvts.state.setProperty ("presetName", presets.getCurrent().name, nullptr);
+    apvts.state.setProperty ("presetFactory", presets.getCurrent().factory, nullptr);
+    apvts.state.setProperty ("presetValid", presets.getCurrent().valid, nullptr);
+
     auto state = apvts.copyState();
     if (auto xml = state.createXml())
         copyXmlToBinary (*xml, destData);
@@ -200,7 +206,15 @@ void SkyverbAudioProcessor::setStateInformation (const void* data, int sizeInByt
 {
     if (auto xml = getXmlFromBinary (data, sizeInBytes))
         if (xml->hasTagName (apvts.state.getType()))
+        {
             apvts.replaceState (juce::ValueTree::fromXml (*xml));
+
+            if ((bool) apvts.state.getProperty ("presetValid", false))
+                presets.restore (apvts.state.getProperty ("presetName", "").toString(),
+                                 (bool) apvts.state.getProperty ("presetFactory", false));
+            else
+                presets.clear();
+        }
 }
 
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()

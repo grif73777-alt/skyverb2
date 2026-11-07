@@ -3,6 +3,7 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include "dsp/Reverb.h"
 #include "dsp/LossyCodec.h"
+#include "Presets.h"
 
 class SkyverbAudioProcessor : public juce::AudioProcessor
 {
@@ -18,7 +19,7 @@ public:
     juce::AudioProcessorEditor* createEditor() override;
     bool hasEditor() const override { return true; }
 
-    const juce::String getName() const override { return "Skyverb"; }
+    const juce::String getName() const override { return "skyverb"; }
     bool acceptsMidi() const override { return false; }
     bool producesMidi() const override { return false; }
     bool isMidiEffect() const override { return false; }
@@ -36,6 +37,7 @@ public:
     static juce::AudioProcessorValueTreeState::ParameterLayout createLayout();
 
     juce::AudioProcessorValueTreeState apvts;
+    sky::PresetManager presets; // must be declared after apvts
 
 private:
     static constexpr int kChunk = 512;
